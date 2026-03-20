@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoBadge — Générateur de badges</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --ink:#0a0a0a; --paper:#f5f0e8; --cream:#ede8dc;
+  --blue:#1a4a8a; --blue-l:#5b8ec4; --red:#c0392b;
+  --gold:#c8973a; --sage:#4a6741; --border:rgba(10,10,10,0.12);
+  --school-color: #1a4a8a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{width:100%;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#5b8ec4 #ede8dc;}
+body{width:100%;background:var(--paper);color:var(--ink);font-family:'DM Mono',monospace;overflow-x:hidden;}
+
+/* ── SETUP SCREEN ── */
+#setupScreen {
+  position: static;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg,#0a1628 0%,#1a4a8a 50%,#0a1628 100%);
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.setup-card {
+  background:white;border-radius:8px;padding:2.5rem 2rem;
+  width:100%; max-width:540px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4);
+  margin: auto;
+}
+.setup-card h2 {
+  font-family:'DM Serif Display',serif;font-size:1.8rem;
+  color:var(--blue);margin-bottom:0.3rem;text-align:center;
+}
+.setup-card .setup-sub {
+  text-align:center;font-size:0.65rem;letter-spacing:0.15em;
+  text-transform:uppercase;color:rgba(10,10,10,0.4);margin-bottom:2rem;
+}
+.setup-field{margin-bottom:1.1rem;}
+.setup-field label{display:block;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(10,10,10,0.45);margin-bottom:0.4rem;}
+.setup-field input,.setup-field select{
+  width:100%;padding:0.7rem 0.9rem;border:1.5px solid rgba(10,10,10,0.15);
+  border-radius:4px;font-family:'DM Mono',monospace;font-size:0.9rem;
+  color:var(--ink);outline:none;transition:border-color 0.15s;
+}
+.setup-field input:focus,.setup-field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,74,138,0.12);}
+.setup-field input::placeholder{color:rgba(10,10,10,0.28);}
+
+.logo-tabs{display:flex;gap:0.5rem;margin-bottom:0.6rem;}
+.logo-tab{
+  padding:0.4rem 0.9rem;font-family:'DM Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.12em;text-transform:uppercase;border:1.5px solid var(--border);
+  border-radius:3px;cursor:pointer;background:white;color:rgba(10,10,10,0.5);transition:all 0.15s;
+}
+.logo-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
+#logoUploadZone{
+  border:2px dashed rgba(26,74,138,0.35);border-radius:4px;padding:1.2rem;
+  text-align:center;cursor:pointer;background:rgba(26,74,138,0.04);transition:background 0.15s;
+}
+#logoUploadZone:hover{background:rgba(26,74,138,0.08);}
+#logoUploadZone p{font-size:0.68rem;color:rgba(10,10,10,0.45);}
+#setupLogoPreview{max-height:60px;max-width:180px;object-fit:contain;display:none;margin:0.5rem auto 0;}
+
+.color-row{display:flex;gap:0.5rem;align-items:center;}
+.color-row input[type=color]{width:42px;height:36px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;padding:2px;}
+.color-row span{font-size:0.65rem;color:rgba(10,10,10,0.45);}
+
+.btn-setup{
+  width:100%;padding:1rem;margin-top:1.5rem;
+  background:var(--blue);color:white;border:none;
+  font-family:'DM Mono',monospace;font-size:0.75rem;
+  letter-spacing:0.18em;text-transform:uppercase;
+  cursor:pointer;border-radius:4px;transition:background 0.15s;
+}
+.btn-setup:hover{background:#1e5aa0;}
+
+/* ── MAIN APP ── */
+#appScreen{display:none;}
+
+header{
+  padding:1rem 1.5rem;border-bottom:3px solid var(--red);
+  display:flex;align-items:center;gap:1rem;
+  background:var(--school-color);color:white;position:relative;
+}
+#headerLogo{height:46px;object-fit:contain;background:white;padding:3px 7px;border-radius:2px;}
+.header-titles{flex:1;}
+.header-titles h1{font-family:'DM Serif Display',serif;font-size:1.35rem;}
+.header-titles .sub{font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;opacity:0.7;margin-top:2px;}
+.btn-settings{
+  background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);
+  color:white;padding:0.4rem 0.75rem;font-family:'DM Mono',monospace;
+  font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;border-radius:3px;transition:background 0.15s;white-space:nowrap;
+}
+.btn-settings:hover{background:rgba(255,255,255,0.28);}
+
+main{
+  max-width:1100px;margin:0 auto;padding:1.8rem 1.5rem;
+  display:grid;grid-template-columns:1fr 1fr;gap:1.8rem;align-items:start;
+}
+@media(max-width:700px){main{grid-template-columns:1fr;padding:1rem;gap:1.2rem;}header{padding:0.9rem 1rem;} header h1{font-size:1.1rem;}}
+
+.panel{background:var(--cream);border:1px solid var(--border);border-radius:2px;overflow:hidden;box-shadow:3px 3px 0 rgba(10,10,10,0.05);}
+.panel-header{padding:0.72rem 1.1rem;border-bottom:1px solid var(--border);font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(10,10,10,0.42);display:flex;align-items:center;gap:0.5rem;}
+.panel-header::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;}
+.panel-body{padding:1.1rem;}
+.full-width{grid-column:1/-1;}
+
+/* Camera */
+.camera-frame{position:relative;width:100%;aspect-ratio:4/3;background:var(--ink);border-radius:1px;overflow:hidden;cursor:pointer;}
+.camera-frame::before,.camera-frame::after{content:'';position:absolute;width:18px;height:18px;border-color:var(--blue-l);border-style:solid;z-index:10;}
+.camera-frame::before{top:7px;left:7px;border-width:2px 0 0 2px;}
+.camera-frame::after{bottom:7px;right:7px;border-width:0 2px 2px 0;}
+#videoEl{width:100%;height:100%;object-fit:cover;display:block;}
+#canvasEl{display:none;}
+.cam-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.8rem;color:rgba(245,240,232,0.4);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;}
+.cam-placeholder svg{width:44px;height:44px;opacity:0.28;}
+.flash-overlay{position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:20;transition:opacity 0.05s;}
+.flash-overlay.active{opacity:1;}
+#btnSwitchCam{display:none;position:absolute;top:9px;right:9px;z-index:15;background:rgba(0,0,0,0.52);border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;color:white;font-size:1.2rem;align-items:center;justify-content:center;}
+
+.cam-actions{display:flex;gap:0.5rem;margin-top:0.7rem;}
+.btn-capture{flex:1;padding:0.82rem;background:var(--blue);color:white;border:none;font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;transition:background 0.15s;}
+.btn-capture:hover:not(:disabled){background:#1e5aa0;}
+.btn-capture:disabled{background:rgba(10,10,10,0.18);cursor:not-allowed;}
+.btn-mode{padding:0.82rem 1rem;background:var(--blue-l);color:white;border:none;font-family:'DM Mono',monospace;font-size:0.85rem;cursor:pointer;transition:background 0.15s;border-radius:0;}
+.btn-mode:hover{background:#4a7db3;}
+
+#uploadZone{display:none;margin-top:0.7rem;border:2px dashed var(--blue-l);border-radius:2px;padding:1.4rem;text-align:center;cursor:pointer;background:rgba(26,74,138,0.04);transition:background 0.15s;}
+#uploadZone:hover{background:rgba(26,74,138,0.09);}
+#uploadZone p{font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(10,10,10,0.4);}
+#uploadZone small{font-size:0.6rem;color:rgba(10,10,10,0.3);}
+#uploadedPreview{display:none;max-width:100%;max-height:180px;object-fit:contain;border-radius:1px;margin-top:0.6rem;}
+
+/* Form */
+.field{margin-bottom:0.78rem;}
+.field label{display:block;font-size:0.56rem;letter-spacing:0.17em;text-transform:uppercase;color:rgba(10,10,10,0.38);margin-bottom:0.3rem;}
+.field input,.field select,#classeSelect{width:100%;padding:0.58rem 0.78rem;background:var(--paper);border:1px solid var(--border);border-radius:1px;font-family:'DM Mono',monospace;font-size:0.86rem;color:var(--ink);outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,74,138,0.1);}
+.field input::placeholder{color:rgba(10,10,10,0.23);}
+#classeSelect{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%230a0a0a' stroke-opacity='0.4' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.78rem center;cursor:pointer;}
+#classeSelect:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,74,138,0.1);}
+
+.preview-label{font-size:0.56rem;letter-spacing:0.17em;text-transform:uppercase;color:rgba(10,10,10,0.36);margin-bottom:0.3rem;}
+#badgeCanvas{width:100%;display:block;border:1px solid var(--border);border-radius:1px;background:white;margin-bottom:0.85rem;}
+
+.drive-info{margin:0.55rem 0;padding:0.58rem 0.82rem;background:rgba(26,74,138,0.07);border:1px solid rgba(26,74,138,0.17);border-radius:1px;font-size:0.64rem;color:rgba(10,10,10,0.58);line-height:1.8;}
+
+.auth-strip{margin-top:0.45rem;padding:0.62rem 0.82rem;background:rgba(200,151,58,0.08);border:1px solid rgba(200,151,58,0.2);border-radius:1px;display:flex;align-items:center;gap:0.55rem;font-size:0.62rem;letter-spacing:0.05em;color:rgba(10,10,10,0.56);}
+.dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background 0.3s;}
+.dot.connected{background:var(--sage);} .dot.error{background:var(--red);}
+.auth-label{flex:1;}
+.btn-auth{padding:0.32rem 0.68rem;background:var(--gold);color:white;border:none;font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;border-radius:1px;}
+.btn-auth:hover{background:#d4a848;} .btn-auth.hidden{display:none;}
+
+.action-btns{display:flex;flex-direction:column;gap:0.45rem;margin-top:0.7rem;}
+.btn-action{
+  width:100%;padding:0.82rem;border:none;font-family:'DM Mono',monospace;
+  font-size:0.67rem;letter-spacing:0.13em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;position:relative;
+}
+.btn-drive{background:transparent;color:var(--ink);border:2px solid var(--ink);}
+.btn-drive:hover:not(:disabled){background:var(--ink);color:var(--paper);}
+.btn-drive:disabled{opacity:0.26;cursor:not-allowed;}
+.btn-badge-gen{background:var(--blue);color:white;}
+.btn-badge-gen:hover:not(:disabled){background:#1e5aa0;}
+.btn-badge-gen:disabled{opacity:0.26;cursor:not-allowed;}
+.progress-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--blue);transition:width 0.3s;width:0%;}
+
+.status{margin-top:0.7rem;padding:0.58rem 0.82rem;font-size:0.64rem;letter-spacing:0.05em;border-radius:1px;display:none;line-height:1.6;}
+.status.success{display:block;background:rgba(74,103,65,0.1);border:1px solid rgba(74,103,65,0.26);color:var(--sage);}
+.status.error{display:block;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);color:var(--red);}
+
+/* Badge list */
+.badge-actions{display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;margin-bottom:0.9rem;}
+.badge-count{font-size:0.64rem;letter-spacing:0.07em;color:rgba(10,10,10,0.42);}
+.btn-pdf{padding:0.68rem 1.3rem;color:white;border:none;font-family:'DM Mono',monospace;font-size:0.66rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border-radius:1px;transition:background 0.15s;display:inline-flex;align-items:center;gap:0.45rem;}
+.btn-view-pdf{background:#e67e22;} .btn-view-pdf:hover:not(:disabled){background:#ca6f1e;}
+.btn-dl-pdf{background:var(--red);} .btn-dl-pdf:hover:not(:disabled){background:#a93226;}
+.btn-clear-all{background:rgba(10,10,10,0.3);} .btn-clear-all:hover{background:rgba(10,10,10,0.5);}
+.btn-pdf:disabled{background:rgba(10,10,10,0.18);cursor:not-allowed;}
+
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:0.8rem;}
+.badge-thumb{border:1px solid var(--border);border-radius:2px;overflow:hidden;background:white;position:relative;animation:fadeIn 0.3s ease;}
+.badge-thumb img{width:100%;display:block;}
+.badge-lbl{padding:0.32rem 0.52rem;font-size:0.58rem;letter-spacing:0.05em;color:rgba(10,10,10,0.52);border-top:1px solid var(--border);background:var(--cream);}
+.btn-rm{position:absolute;top:5px;right:5px;width:21px;height:21px;background:rgba(192,57,43,0.82);color:white;border:none;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+@keyframes blink{0%,80%,100%{opacity:0;}40%{opacity:1;}}
+.ld span{animation:blink 1.4s infinite both;}
+.ld span:nth-child(2){animation-delay:0.2s;} .ld span:nth-child(3){animation-delay:0.4s;}
+
+#historyStrip{display:none;}
+.history-list{display:flex;gap:0.45rem;flex-wrap:wrap;padding-top:0.2rem;}
+.history-item{padding:0.28rem 0.55rem;background:rgba(74,103,65,0.1);border:1px solid rgba(74,103,65,0.16);border-radius:1px;font-size:0.58rem;color:var(--sage);}
+.history-item a{color:var(--sage);text-decoration:none;font-weight:500;}
+.history-item a:hover{text-decoration:underline;}
+
+/* ── SCROLLBAR ── */
+html { overflow-y: scroll; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--blue-l); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+/* ── POPUP AIDE ── */
+#helpOverlay {
+  display:none; position:fixed; inset:0; z-index:99999;
+  background:rgba(10,10,10,0.65); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center; padding:1rem;
+}
+#helpOverlay.open { display:flex; }
+.help-modal {
+  background:white; border-radius:8px; max-width:680px; width:100%;
+  max-height:88vh; overflow-y:auto; box-shadow:0 24px 64px rgba(0,0,0,0.4);
+  animation:fadeIn 0.2s ease;
+}
+.help-modal-header {
+  padding:1.5rem 1.8rem 1rem;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; background:white; z-index:10;
+}
+.help-modal-header h2 { font-family:'DM Serif Display',serif; font-size:1.5rem; color:var(--blue); }
+.btn-close-help {
+  width:34px; height:34px; border-radius:50%; border:none;
+  background:rgba(10,10,10,0.08); cursor:pointer; font-size:1.2rem;
+  display:flex; align-items:center; justify-content:center;
+  transition:background 0.15s;
+}
+.btn-close-help:hover { background:rgba(10,10,10,0.18); }
+.help-body { padding:1.5rem 1.8rem; }
+.help-section { margin-bottom:1.8rem; }
+.help-section h3 {
+  font-family:'DM Serif Display',serif; font-size:1.1rem;
+  color:var(--blue); margin-bottom:0.8rem;
+  padding-bottom:0.4rem; border-bottom:2px solid var(--red);
+}
+.help-step {
+  display:flex; gap:0.8rem; margin-bottom:0.7rem; align-items:flex-start;
+}
+.help-step .num {
+  min-width:26px; height:26px; border-radius:50%;
+  background:var(--blue); color:white;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.7rem; font-weight:bold; flex-shrink:0; margin-top:1px;
+}
+.help-step p { font-size:0.78rem; line-height:1.7; color:rgba(10,10,10,0.75); }
+.help-step p strong { color:var(--ink); }
+.help-step p code {
+  background:rgba(26,74,138,0.1); padding:0.1rem 0.35rem;
+  border-radius:3px; font-size:0.75rem; color:var(--blue);
+}
+.help-note {
+  padding:0.7rem 1rem; background:rgba(200,151,58,0.1);
+  border-left:3px solid var(--gold); border-radius:2px;
+  font-size:0.72rem; color:rgba(10,10,10,0.7); line-height:1.7;
+  margin-top:0.8rem;
+}
+.help-note strong { color:var(--gold); }
+
+/* ── HEADER BUTTONS ── */
+.header-btns { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+
+/* ── CLASSES CONFIG ── */
+.classe-row {
+  display:flex; align-items:center; gap:0.6rem;
+  padding:0.5rem 0;
+  border-bottom:1px solid rgba(10,10,10,0.07);
+}
+.classe-row:last-child { border-bottom:none; }
+.classe-row input[type=checkbox] { width:16px; height:16px; cursor:pointer; flex-shrink:0; accent-color:var(--blue); }
+.classe-row .niveau-label { font-size:0.78rem; font-weight:600; color:var(--ink); min-width:72px; }
+.classe-row select, .classe-row input[type=number] {
+  padding:0.3rem 0.5rem;
+  border:1.5px solid rgba(10,10,10,0.15);
+  border-radius:4px;
+  font-family:'DM Mono',monospace;
+  font-size:0.75rem;
+  color:var(--ink);
+  background:white;
+  outline:none;
+}
+.classe-row select { width:130px; }
+.classe-row input[type=number] { width:60px; }
+.classe-row .classe-preview {
+  font-size:0.65rem;
+  color:var(--blue);
+  opacity:0.8;
+  flex:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.classe-row.disabled select,
+.classe-row.disabled input[type=number],
+.classe-row.disabled .classe-preview { opacity:0.3; pointer-events:none; }
+
+/* ── BOUTONS DE STYLE POLICE ── */
+.style-row {
+  display:flex; align-items:center; gap:0.4rem;
+  margin-bottom:0.4rem;
+}
+.font-select {
+  flex:1;
+  padding:0.35rem 0.5rem;
+  border:1.5px solid rgba(10,10,10,0.2);
+  border-radius:4px;
+  font-size:0.78rem;
+  color:var(--ink);
+  background:white;
+  cursor:pointer;
+  outline:none;
+}
+.font-select:focus { border-color:var(--blue); }
+.style-btn {
+  width:30px; height:30px;
+  border:1.5px solid rgba(10,10,10,0.2);
+  border-radius:4px;
+  background:white;
+  cursor:pointer;
+  font-size:0.85rem;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+  color:var(--ink);
+  padding:0; flex-shrink:0;
+}
+.style-btn:hover { background:rgba(26,74,138,0.08); border-color:var(--blue); }
+.style-btn.active { background:var(--blue); border-color:var(--blue); color:white; }
+.style-btn.active strong, .style-btn.active em, .style-btn.active u { color:white; }
+.style-preview-box {
+  margin-top:0.3rem;
+  padding:0.45rem 0.7rem;
+  background:rgba(26,74,138,0.04);
+  border:1px dashed rgba(26,74,138,0.25);
+  border-radius:4px;
+  font-size:0.85rem;
+  color:rgba(10,10,10,0.6);
+  min-height:32px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- ÉCRAN DE CONFIGURATION                -->
+<!-- ══════════════════════════════════════ -->
+<div id="setupScreen">
+  <div class="setup-card">
+
+    <!-- Grand header PhotoBadge -->
+    <div style="text-align:center;margin-bottom:1.5rem;padding:1.2rem 0 0.5rem;">
+      <svg width="100%" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Badge miniature gauche -->
+        <rect x="30" y="20" width="110" height="160" rx="12" fill="#1a4a8a"/>
+        <rect x="30" y="20" width="110" height="40" rx="12" fill="#1a4a8a"/>
+        <rect x="30" y="44" width="110" height="16" fill="#1a4a8a"/>
+        <rect x="30" y="60" width="110" height="80" fill="#ffffff"/>
+        <rect x="30" y="140" width="110" height="40" rx="0" fill="#c0392b"/>
+        <rect x="30" y="160" width="110" height="20" rx="12" fill="#c0392b"/>
+        <rect x="30" y="140" width="110" height="20" fill="#c0392b"/>
+        <!-- Caméra icône top badge -->
+        <g transform="translate(62,27)">
+          <rect x="0" y="2" width="18" height="13" rx="2" fill="none" stroke="white" stroke-width="1.5"/>
+          <circle cx="9" cy="8" r="3.5" fill="none" stroke="white" stroke-width="1.5"/>
+          <rect x="6" y="0" width="6" height="3" rx="1" fill="white"/>
+        </g>
+        <text x="85" y="38" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="white" text-anchor="middle" letter-spacing="1">PB</text>
+        <!-- Photo placeholder -->
+        <rect x="38" y="64" width="38" height="48" rx="3" fill="#dde8f5"/>
+        <circle cx="57" cy="80" r="10" fill="#b8cce0"/>
+        <ellipse cx="57" cy="104" rx="14" ry="9" fill="#b8cce0"/>
+        <!-- Info badge -->
+        <rect x="82" y="66" width="50" height="14" rx="3" fill="#1a4a8a"/>
+        <text x="107" y="76" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="white" text-anchor="middle">6A</text>
+        <rect x="82" y="86" width="50" height="5" rx="2" fill="#1a4a8a" opacity="0.8"/>
+        <rect x="82" y="83" width="50" height="2" rx="1" fill="#c0392b"/>
+        <rect x="82" y="96" width="38" height="4" rx="2" fill="#888" opacity="0.4"/>
+        <text x="85" y="154" font-family="Arial,sans-serif" font-size="6" font-weight="600" fill="white" text-anchor="middle" letter-spacing="1">CARTE ÉLÈVE</text>
+        <!-- Titre principal PHOTOBADGE -->
+        <text x="380" y="90" font-family="Arial,sans-serif" font-size="72" font-weight="900" fill="#1a4a8a" text-anchor="middle" letter-spacing="4">PHOTO</text>
+        <text x="380" y="160" font-family="Arial,sans-serif" font-size="72" font-weight="900" fill="#c0392b" text-anchor="middle" letter-spacing="4">BADGE</text>
+        <!-- Sous-titre -->
+        <text x="380" y="185" font-family="Arial,sans-serif" font-size="11" fill="#888" text-anchor="middle" letter-spacing="3">GÉNÉRATEUR DE BADGES SCOLAIRES</text>
+        <!-- Ligne déco -->
+        <rect x="160" y="170" width="80" height="3" rx="1.5" fill="#1a4a8a" opacity="0.3"/>
+        <rect x="520" y="170" width="80" height="3" rx="1.5" fill="#c0392b" opacity="0.3"/>
+      </svg>
+    </div>
+
+    <!-- Bandeau RGPD -->
+    <div style="
+      margin-bottom:1.2rem;
+      padding:0.7rem 1rem;
+      background:linear-gradient(135deg,#1a4a8a,#1e5aa0);
+      border-radius:6px;
+      color:white;
+      font-size:0.66rem;
+      letter-spacing:0.04em;
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:center;
+      gap:0.5rem;
+      text-align:center;
+      line-height:1.8;
+    ">
+      <span style="background:rgba(255,255,255,0.18);padding:0.2rem 0.65rem;border-radius:20px;font-weight:700;letter-spacing:0.1em;">🔒 100% RGPD</span>
+      <span>Aucune donnée personnelle envoyée sur un serveur distant</span>
+      <span style="opacity:0.4;">·</span>
+      <span>Fonctionne sans connexion internet</span>
+      <span style="opacity:0.4;">·</span>
+      <span>Google Drive optionnel</span>
+    </div>
+    <div style="
+      margin-bottom:1.5rem;
+      padding:1rem 1.1rem;
+      background:rgba(26,74,138,0.05);
+      border:1px solid rgba(26,74,138,0.15);
+      border-radius:6px;
+      font-size:0.7rem;
+      line-height:1.75;
+      color:rgba(10,10,10,0.65);
+    ">
+      <div style="font-weight:600;color:#1a4a8a;margin-bottom:0.5rem;font-size:0.75rem;">📋 À propos de PhotoBadge</div>
+      PhotoBadge est une application web gratuite pour les établissements scolaires. Elle permet de <strong>photographier les élèves</strong>, de <strong>générer automatiquement leur badge personnalisé</strong>, d'<strong>enregistrer les photos et les badges directement sur votre ordinateur ou téléphone</strong> et d'<strong>archiver les photos sur Google Drive si vous le désirez</strong> — <a href="#" onclick="openSetupHelp();return false;" style="color:#1a4a8a;font-weight:600;">Comment configurer Google Drive ?</a> — le tout depuis un navigateur web, sans aucune installation.<br><br>
+      📸 <strong>Capture photo</strong> — caméra ou import d'image<br>
+      🪪 <strong>Badge automatique</strong> — nom, classe, logo, couleurs de l'école<br>
+      🖨 <strong>PDF A4</strong> — 8 badges par page, prêts à imprimer<br>
+      ☁ <strong>Google Drive</strong> — archivage automatique des photos (optionnel)<br>
+      💾 <strong>Sauvegarde locale</strong> — enregistrement sur votre ordinateur ou téléphone<br><br>
+      <div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid rgba(26,74,138,0.15);font-size:0.64rem;color:rgba(10,10,10,0.45);font-style:italic;">
+        Réalisé avec Claude.ai · <strong>Fehmi KLABI</strong> — Professeur de Technologie, Enseignant Formateur 2nd degré AEFE Zone Europe du Sud-Est
+      </div>
+    </div>
+
+    <div class="setup-field">
+      <label>Nom de l'établissement</label>
+      <div class="style-row">
+        <select class="font-select" onchange="setFont('schoolName',this.value)" id="font-schoolName">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Calibri">Calibri</option>
+        </select>
+        <button type="button" class="style-btn" onclick="toggleStyle('schoolName','bold')" id="btn-schoolName-bold"><strong>G</strong></button>
+        <button type="button" class="style-btn" onclick="toggleStyle('schoolName','italic')" id="btn-schoolName-italic"><em>I</em></button>
+        <button type="button" class="style-btn" onclick="toggleStyle('schoolName','underline')" id="btn-schoolName-underline"><u>S</u></button>
+      </div>
+      <input type="text" id="setupSchoolName" placeholder="Ex : Lycée Français Pierre Loti" oninput="updateStylePreview('schoolName')">
+      <div class="style-preview-box" id="preview-schoolName">Nom de l'établissement</div>
+    </div>
+
+    <div class="setup-field">
+      <label>Ville · Pays</label>
+      <div class="style-row">
+        <select class="font-select" onchange="setFont('city',this.value)" id="font-city">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Calibri">Calibri</option>
+        </select>
+        <button type="button" class="style-btn" onclick="toggleStyle('city','bold')" id="btn-city-bold"><strong>G</strong></button>
+        <button type="button" class="style-btn" onclick="toggleStyle('city','italic')" id="btn-city-italic"><em>I</em></button>
+        <button type="button" class="style-btn" onclick="toggleStyle('city','underline')" id="btn-city-underline"><u>S</u></button>
+      </div>
+      <input type="text" id="setupCity" placeholder="Ex : Istanbul · Turquie" oninput="updateStylePreview('city')">
+      <div class="style-preview-box" id="preview-city">Ville · Pays</div>
+    </div>
+
+    <div class="setup-field">
+      <label>Année scolaire</label>
+      <div class="style-row">
+        <select class="font-select" onchange="setFont('year',this.value)" id="font-year">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Calibri">Calibri</option>
+        </select>
+        <button type="button" class="style-btn" onclick="toggleStyle('year','bold')" id="btn-year-bold"><strong>G</strong></button>
+        <button type="button" class="style-btn" onclick="toggleStyle('year','italic')" id="btn-year-italic"><em>I</em></button>
+        <button type="button" class="style-btn" onclick="toggleStyle('year','underline')" id="btn-year-underline"><u>S</u></button>
+      </div>
+      <input type="text" id="setupYear" placeholder="Ex : 2025–2026" oninput="updateStylePreview('year')">
+      <div class="style-preview-box" id="preview-year">Année scolaire</div>
+    </div>
+
+    <!-- SECTION CLASSES -->
+    <div style="margin-bottom:1.1rem;">
+      <div style="font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(10,10,10,0.45);margin-bottom:0.6rem;">
+        🏫 Configuration des classes
+      </div>
+      <div style="padding:1rem;background:rgba(26,74,138,0.04);border:1.5px solid rgba(26,74,138,0.2);border-radius:4px;">
+        <div style="font-size:0.65rem;color:rgba(10,10,10,0.5);margin-bottom:0.8rem;line-height:1.6;">
+          Cochez les niveaux présents, choisissez le type (numérique ou alphabétique) et le nombre de classes.
+        </div>
+        <div id="classesConfig"><!-- Généré par JS --></div>
+      </div>
+    </div>
+
+    <div class="setup-field">
+      <label>Logo de l'établissement</label>
+      <div class="logo-tabs">
+        <button class="logo-tab active" id="tabUrl" onclick="switchLogoTab('url')">🔗 Lien URL</button>
+        <button class="logo-tab" id="tabUpload" onclick="switchLogoTab('upload')">📁 Uploader</button>
+      </div>
+      <div id="logoUrlPanel">
+        <input type="url" id="setupLogoUrl" placeholder="https://... (.jpg, .png)">
+      </div>
+      <div id="logoUploadPanel" style="display:none;">
+        <div id="logoUploadZone" onclick="document.getElementById('logoFileInput').click()">
+          <p>🖼 Cliquez pour choisir le logo</p>
+          <p style="font-size:0.62rem;margin-top:0.3rem;opacity:0.6;">JPG, PNG, WEBP</p>
+        </div>
+        <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
+      </div>
+      <img id="setupLogoPreview" alt="Aperçu logo">
+    </div>
+
+    <div class="setup-field">
+      <label>Couleur principale du badge</label>
+      <div class="color-row">
+        <input type="color" id="setupColor" value="#1a4a8a">
+        <span>Couleur de la bande supérieure et des textes principaux</span>
+      </div>
+    </div>
+
+    <div class="setup-field">
+      <label>Couleur secondaire du badge</label>
+      <div class="color-row">
+        <input type="color" id="setupColor2" value="#c0392b">
+        <span>Couleur de la bande inférieure et des accents</span>
+      </div>
+    </div>
+
+    <!-- SECTION DRIVE COLLAPSIBLE -->
+    <div style="margin-bottom:1.1rem;">
+      <!-- Bouton pour afficher/masquer les champs Drive -->
+      <div id="driveToggle" onclick="toggleDriveFields()" style="
+        cursor:pointer;
+        padding:0.85rem 1rem;
+        background:rgba(26,74,138,0.06);
+        border:1.5px dashed rgba(26,74,138,0.35);
+        border-radius:4px;
+        display:flex;align-items:center;gap:0.75rem;
+        transition:background 0.15s;
+      ">
+        <span style="font-size:1.2rem;">☁</span>
+        <div style="flex:1;">
+          <div style="font-size:0.78rem;color:#1a4a8a;font-weight:500;">Enregistrer les photos sur Google Drive</div>
+          <div style="font-size:0.62rem;color:rgba(10,10,10,0.45);margin-top:2px;">Cliquez ici pour configurer la connexion Drive</div>
+        </div>
+        <span id="driveArrow" style="font-size:0.9rem;color:#1a4a8a;transition:transform 0.2s;">▼</span>
+      </div>
+
+      <!-- Champs Drive (cachés par défaut) -->
+      <div id="driveFields" style="display:none;margin-top:0.6rem;padding:1rem;background:rgba(26,74,138,0.04);border:1.5px solid rgba(26,74,138,0.2);border-radius:4px;">
+
+        <!-- Bouton aide Drive -->
+        <button type="button" onclick="openSetupHelp()" style="
+          width:100%;margin-bottom:1rem;padding:0.65rem;
+          background:rgba(200,151,58,0.12);border:1.5px solid rgba(200,151,58,0.4);
+          border-radius:4px;cursor:pointer;
+          font-family:'DM Mono',monospace;font-size:0.68rem;
+          letter-spacing:0.1em;text-transform:uppercase;color:#7a5a00;
+          display:flex;align-items:center;justify-content:center;gap:0.5rem;
+          transition:background 0.15s;
+        ">
+          ❓ &nbsp; Comment configurer Google Drive ?
+        </button>
+
+        <div class="setup-field" style="margin-bottom:0.8rem;">
+          <label>Client ID Google OAuth</label>
+          <input type="text" id="setupClientId" placeholder="xxxxxxxx.apps.googleusercontent.com">
+          <div style="font-size:0.6rem;color:rgba(10,10,10,0.38);margin-top:0.3rem;">Obtenez ce code sur console.cloud.google.com</div>
+        </div>
+
+        <div class="setup-field" style="margin-bottom:0;">
+          <label>ID du dossier Google Drive</label>
+          <input type="text" id="setupFolderId" placeholder="ID du dossier Drive de destination">
+          <div style="font-size:0.6rem;color:rgba(10,10,10,0.38);margin-top:0.3rem;">L'ID se trouve dans l'URL du dossier Drive après /folders/</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-setup" onclick="saveConfig()">✓ &nbsp; Démarrer l'application</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- APPLICATION PRINCIPALE                -->
+<!-- ══════════════════════════════════════ -->
+<div id="appScreen">
+
+  <header id="appHeader">
+    <!-- Grand header PhotoBadge -->
+    <div style="display:flex;align-items:center;gap:1.2rem;flex:1;min-width:0;">
+      <!-- Badge logo -->
+      <svg width="52" height="64" viewBox="0 0 110 180" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+        <rect x="0" y="0" width="110" height="180" rx="12" fill="white" opacity="0.95"/>
+        <rect x="0" y="0" width="110" height="44" rx="12" fill="#1a4a8a"/>
+        <rect x="0" y="32" width="110" height="12" fill="#1a4a8a"/>
+        <rect x="0" y="44" width="110" height="96" fill="white"/>
+        <rect x="0" y="140" width="110" height="40" rx="0" fill="#c0392b"/>
+        <rect x="0" y="160" width="110" height="20" rx="12" fill="#c0392b"/>
+        <rect x="0" y="140" width="110" height="20" fill="#c0392b"/>
+        <g transform="translate(18,10)">
+          <rect x="0" y="2" width="22" height="16" rx="2.5" fill="none" stroke="white" stroke-width="2"/>
+          <circle cx="11" cy="10" r="4" fill="none" stroke="white" stroke-width="2"/>
+          <rect x="7" y="0" width="8" height="4" rx="1" fill="white"/>
+        </g>
+        <text x="65" y="33" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="white" text-anchor="middle" letter-spacing="1">PB</text>
+        <rect x="8" y="50" width="44" height="58" rx="4" fill="#dde8f5"/>
+        <circle cx="30" cy="70" r="13" fill="#b8cce0"/>
+        <ellipse cx="30" cy="100" rx="18" ry="11" fill="#b8cce0"/>
+        <rect x="58" y="52" width="44" height="18" rx="4" fill="#1a4a8a"/>
+        <text x="80" y="64" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="white" text-anchor="middle">6A</text>
+        <rect x="58" y="78" width="44" height="6" rx="2" fill="#1a4a8a" opacity="0.8"/>
+        <rect x="58" y="74" width="44" height="2" rx="1" fill="#c0392b"/>
+        <rect x="58" y="90" width="34" height="5" rx="2" fill="#888" opacity="0.4"/>
+        <text x="55" y="156" font-family="Arial,sans-serif" font-size="7" font-weight="600" fill="white" text-anchor="middle" letter-spacing="1">CARTE ÉLÈVE</text>
+      </svg>
+      <!-- PHOTOBADGE texte -->
+      <div style="min-width:0;">
+        <div style="font-family:'DM Serif Display',serif;font-size:2rem;font-weight:900;color:white;line-height:1;letter-spacing:2px;">
+          <span>PHOTO</span><span style="color:#ffb3a7;">BADGE</span>
+        </div>
+        <div style="font-size:0.55rem;letter-spacing:0.18em;text-transform:uppercase;opacity:0.75;color:white;margin-top:3px;">Générateur de badges scolaires</div>
+        <div class="sub" id="headerSub" style="margin-top:2px;"></div>
+      </div>
+    </div>
+    <img id="headerLogo" src="" alt="Logo" crossorigin="anonymous" style="display:none;">
+    <div class="header-btns">
+      <button class="btn-settings" onclick="openHelp()">❓ Aide</button>
+      <button class="btn-settings" onclick="openSettings()">⚙ Paramètres</button>
+    </div>
+  </header>
+
+  <!-- Bandeau navigateur + RGPD -->
+  <div id="browserBanner" style="
+    background:linear-gradient(135deg,#1a4a8a 0%,#1e5aa0 100%);
+    border-bottom:2px solid #c0392b;
+    padding:0.6rem 1.5rem;
+    display:flex; align-items:center;
+    gap:1rem; font-size:0.68rem; letter-spacing:0.04em;
+    color:white; flex-wrap:wrap; justify-content:center; text-align:center;">
+    <!-- RGPD -->
+    <span style="display:flex;align-items:center;gap:0.4rem;background:rgba(255,255,255,0.15);padding:0.3rem 0.75rem;border-radius:20px;font-weight:600;letter-spacing:0.08em;">
+      🔒 100% RGPD
+    </span>
+    <span style="opacity:0.9;">
+      Aucune donnée personnelle envoyée sur un serveur distant
+    </span>
+    <span style="opacity:0.4;">·</span>
+    <span style="opacity:0.9;">
+      Fonctionne sans connexion internet
+    </span>
+    <span style="opacity:0.4;">·</span>
+    <span style="opacity:0.9;">
+      Google Drive optionnel
+    </span>
+    <span style="opacity:0.4;">·</span>
+    <span style="opacity:0.75;font-size:0.62rem;">
+      🌐 Navigateur recommandé : <strong>Chrome / Edge</strong> sur PC — Firefox : fonctionnalités limitées
+    </span>
+    <button onclick="document.getElementById('browserBanner').style.display='none'" style="
+      background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3);
+      border-radius:50%; cursor:pointer; font-size:0.85rem;
+      color:white; padding:0 0.4rem; line-height:1.6; margin-left:0.5rem;">✕</button>
+  </div>
+
+  <main>
+    <section class="panel">
+      <div class="panel-header">Photo de l'élève</div>
+      <div class="panel-body">
+
+        <div class="camera-frame" id="cameraFrame">
+          <div class="cam-placeholder" id="camPlaceholder">
+            <svg fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>Cliquez pour activer la caméra</span>
+          </div>
+          <video id="videoEl" autoplay playsinline muted></video>
+          <canvas id="canvasEl"></canvas>
+          <div class="flash-overlay" id="flashOverlay"></div>
+          <button id="btnSwitchCam" title="Changer caméra">⟳</button>
+        </div>
+
+        <div class="cam-actions">
+          <button class="btn-capture" id="btnCapture" disabled>⊙ &nbsp; Prendre la photo</button>
+          <button class="btn-mode" id="btnMode" title="Importer une image">📁</button>
+        </div>
+
+        <div id="uploadZone">
+          <input type="file" id="fileInput" accept="image/*" style="display:none;">
+          <div id="uploadZoneInner">
+            <div style="font-size:2rem;margin-bottom:0.4rem;">🖼</div>
+            <p>Cliquez ou glissez une image</p>
+            <small>JPG · PNG · WEBP</small>
+          </div>
+          <img id="uploadedPreview" alt="Aperçu">
+        </div>
+
+      </div>
+    </section>
+
+    <!-- DROITE : Formulaire + badge -->
+    <section class="panel">
+      <div class="panel-header">Informations élève</div>
+      <div class="panel-body">
+
+        <div class="preview-label">Aperçu du badge</div>
+        <canvas id="badgeCanvas" width="320" height="200"></canvas>
+
+        <div class="field">
+          <label>Classe</label>
+          <select id="classeSelect">
+            <option value="">— Choisir la classe —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nom de famille</label>
+          <input type="text" id="lastNameInput" placeholder="DUPONT" autocomplete="family-name">
+        </div>
+        <div class="field">
+          <label>Prénom</label>
+          <input type="text" id="firstNameInput" placeholder="Marie" autocomplete="given-name">
+        </div>
+
+        <div class="drive-info">
+          💾 Photos sauvegardées localement au format <strong>JJ-MM-AAAA-HH-MM-SSs</strong><br>
+          📁 Drive : <span id="driveInfoText">non configuré</span><br>
+          <span id="fnPreview" style="font-size:0.62rem;opacity:0.6;">Fichier Drive : classe_nom_prenom.jpg</span>
+        </div>
+
+        <div class="auth-strip" id="authStrip" style="display:none;">
+          <span class="dot" id="authDot"></span>
+          <span class="auth-label" id="authLabel">Non connecté</span>
+          <button class="btn-auth" id="btnAuth">Connexion</button>
+        </div>
+
+        <div class="action-btns">
+          <button class="btn-action btn-drive" id="btnUpload" disabled>
+            ☁ &nbsp; Envoyer la photo sur Drive
+            <div class="progress-bar" id="progressBar"></div>
+          </button>
+          <button class="btn-action btn-badge-gen" id="btnBadge" disabled>
+            🪪 &nbsp; Générer le badge
+          </button>
+        </div>
+        <div class="status" id="statusMsg"></div>
+      </div>
+    </section>
+
+    <!-- BAS : Badges générés -->
+    <section class="panel full-width" id="badgeSection" style="display:none;">
+      <div class="panel-header">Badges générés</div>
+      <div class="panel-body">
+        <div class="badge-actions">
+          <span class="badge-count" id="badgeCount">0 badge(s)</span>
+          <button class="btn-pdf btn-view-pdf" id="btnPreviewPDF" disabled>👁 &nbsp; Visualiser PDF</button>
+          <button class="btn-pdf btn-dl-pdf" id="btnPDF" disabled>🖨 &nbsp; Télécharger PDF A4</button>
+          <button class="btn-pdf btn-clear-all" id="btnClear">🗑 &nbsp; Tout effacer</button>
+        </div>
+        <div class="badge-grid" id="badgeGrid"></div>
+      </div>
+    </section>
+
+    <!-- Historique Drive -->
+    <section class="panel full-width" id="historyStrip">
+      <div class="panel-header">Fichiers envoyés sur Drive</div>
+      <div class="panel-body">
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer style="
+    margin-top:2rem;
+    padding:1.5rem 2rem;
+    background:var(--blue);
+    color:white;
+    font-size:0.65rem;
+    letter-spacing:0.06em;
+    line-height:1.9;
+  ">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:0.6rem;">📋 À propos de PhotoBadge</div>
+        PhotoBadge est une application web gratuite pour les établissements scolaires. Elle permet de photographier les élèves, de générer automatiquement leur badge personnalisé, d'enregistrer les photos et les badges directement sur votre ordinateur ou téléphone et d'archiver les photos sur Google Drive si vous le désirez — <a href="#" onclick="openHelp();return false;" style="color:#fff;font-weight:600;text-decoration:underline;">Comment configurer Google Drive ?</a> — le tout depuis un navigateur web, sans aucune installation.<br><br>
+        📸 <strong>Capture photo</strong> — caméra ou import d'image<br>
+        🪪 <strong>Badge automatique</strong> — nom, classe, logo, couleurs de l'école<br>
+        🖨 <strong>PDF A4</strong> — 8 badges par page, prêts à imprimer<br>
+        ☁ <strong>Google Drive</strong> — archivage automatique des photos (optionnel)<br>
+        💾 <strong>Sauvegarde locale</strong> — enregistrement sur votre ordinateur ou téléphone<br>
+        ⚙ <strong>Personnalisable</strong> — logo, couleurs, nom, ville, année scolaire<br><br>
+        <em style="opacity:0.7;">Navigateur recommandé : Chrome ou Edge sur PC.</em>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:0.6rem;">👨‍💻 Crédits</div>
+        <div style="opacity:0.9;">
+          Application réalisée avec <strong>Claude.ai</strong> (Anthropic)<br><br>
+          <strong style="font-size:0.78rem;">Fehmi KLABI</strong><br>
+          Professeur de Technologie<br>
+          Enseignant Formateur 2nd degré<br>
+          AEFE — Zone Europe du Sud-Est<br><br>
+          <div style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid rgba(255,255,255,0.2);opacity:0.6;font-size:0.6rem;">
+            © 2025–2026 — PhotoBadge — Usage libre pour les établissements scolaires
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- POPUP AIDE (hors de appScreen)         -->
+<!-- ══════════════════════════════════════ -->
+<div id="helpOverlay" onclick="closeHelpOutside(event)">
+  <div class="help-modal">
+    <div class="help-modal-header">
+      <h2>❓ Guide d'utilisation</h2>
+      <button class="btn-close-help" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="help-body">
+
+      <div class="help-section">
+        <h3>1 — Configurer Google Drive</h3>
+        <div class="help-step"><div class="num">1</div><p>Allez sur <strong>Google Cloud Console</strong> : <code>console.cloud.google.com</code> et créez un projet.</p></div>
+        <div class="help-step"><div class="num">2</div><p>Dans <strong>APIs &amp; Services → Bibliothèque</strong>, cherchez <strong>Google Drive API</strong> et cliquez <strong>Activer</strong>.</p></div>
+        <div class="help-step"><div class="num">3</div><p>Allez dans <strong>Google Auth Platform → Premiers pas</strong>. Remplissez le nom de l'application et votre email, puis enregistrez.</p></div>
+        <div class="help-step"><div class="num">4</div><p>Dans <strong>Audience</strong>, ajoutez votre adresse Gmail dans les <strong>Utilisateurs test</strong>.</p></div>
+        <div class="help-step"><div class="num">5</div><p>Dans <strong>Clients → Créer un client</strong>, choisissez <strong>Application Web</strong>. Dans <strong>Origines JavaScript autorisées</strong>, ajoutez l'URL de votre site (ex: <code>https://monsite.github.io</code>).</p></div>
+        <div class="help-step"><div class="num">6</div><p>Copiez l'<strong>ID client</strong> obtenu (format : <code>xxxxx.apps.googleusercontent.com</code>) et collez-le dans les paramètres de l'application.</p></div>
+        <div class="help-note"><strong>💡 Conseil :</strong> Créez un dossier <strong>PhotoDrive</strong> dans votre Google Drive. Ouvrez-le et copiez l'ID dans l'URL (après <code>/folders/</code>). Collez cet ID dans le champ "ID dossier Drive" des paramètres.</div>
+      </div>
+
+      <div class="help-section">
+        <h3>2 — Paramétrer l'application</h3>
+        <div class="help-step"><div class="num">1</div><p>Cliquez sur <strong>⚙ Paramètres</strong> dans le header pour accéder à la configuration.</p></div>
+        <div class="help-step"><div class="num">2</div><p>Renseignez le <strong>nom de l'établissement</strong>, la <strong>ville</strong> et l'<strong>année scolaire</strong>.</p></div>
+        <div class="help-step"><div class="num">3</div><p>Ajoutez le <strong>logo</strong> via un lien URL ou en uploadant directement le fichier image (JPG, PNG).</p></div>
+        <div class="help-step"><div class="num">4</div><p>Choisissez les <strong>couleurs</strong> principale et secondaire pour personnaliser les badges.</p></div>
+        <div class="help-step"><div class="num">5</div><p>Collez votre <strong>Client ID Google OAuth</strong> et l'<strong>ID du dossier Drive</strong> si vous utilisez Google Drive.</p></div>
+      </div>
+
+      <div class="help-section">
+        <h3>3 — Utiliser l'application</h3>
+        <div class="help-step"><div class="num">1</div><p><strong>Activez la caméra</strong> en cliquant sur la zone vidéo, ou importez une image avec le bouton 📁.</p></div>
+        <div class="help-step"><div class="num">2</div><p>Remplissez la <strong>classe</strong>, le <strong>nom</strong> et le <strong>prénom</strong> de l'élève. Le badge se génère en temps réel.</p></div>
+        <div class="help-step"><div class="num">3</div><p>Cliquez <strong>☁ Envoyer sur Drive</strong> pour sauvegarder la photo sur Google Drive (nécessite une connexion Google).</p></div>
+        <div class="help-step"><div class="num">4</div><p>Cliquez <strong>🪪 Générer le badge</strong> pour ajouter le badge à la liste. La photo est aussi sauvegardée localement au format <code>JJ-MM-AAAA-HH-MM-SSs.jpg</code>.</p></div>
+        <div class="help-step"><div class="num">5</div><p>Une fois tous les badges générés, cliquez <strong>👁 Visualiser PDF</strong> pour prévisualiser ou <strong>🖨 Télécharger PDF</strong> pour sauvegarder. Max <strong>8 badges par page A4</strong>.</p></div>
+      </div>
+
+      <div class="help-section">
+        <h3>4 — Sauvegarde locale</h3>
+        <div class="help-step"><div class="num">1</div><p>Chaque <strong>photo prise</strong> est automatiquement téléchargée : <code>20-03-2026-23-00-14s.jpg</code>.</p></div>
+        <div class="help-step"><div class="num">2</div><p>Les <strong>PDF</strong> téléchargés suivent le même format : <code>badges_20-03-2026-23-00-14s.pdf</code>.</p></div>
+        <div class="help-step"><div class="num">3</div><p>Sur Chrome/Edge, un sélecteur de dossier s'ouvre pour choisir où sauvegarder.</p></div>
+        <div class="help-note"><strong>⚠️ Firefox :</strong> Le choix de dossier n'est pas supporté. Les fichiers iront dans le dossier par défaut.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client"></script>
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG (chargée depuis localStorage)
+// ══════════════════════════════════════════════════
+let CFG = {
+  schoolName: '', city: '', year: '',
+  logoDataUrl: '', logoUrl: '',
+  color1: '#1a4a8a', color2: '#c0392b',
+  clientId: '', folderId: '',
+  styles: {
+    schoolName: { bold:false, italic:false, underline:false, font:'Arial' },
+    city:       { bold:false, italic:false, underline:false, font:'Arial' },
+    year:       { bold:false, italic:false, underline:false, font:'Arial' }
+  },
+  classes: {
+    '6ème':     { active:true,  type:'alpha', count:6 },
+    '5ème':     { active:true,  type:'alpha', count:6 },
+    '4ème':     { active:true,  type:'alpha', count:6 },
+    '3ème':     { active:true,  type:'alpha', count:6 },
+    '2nde':     { active:true,  type:'alpha', count:6 },
+    '1ère':     { active:true,  type:'alpha', count:6 },
+    'Terminale':{ active:true,  type:'alpha', count:6 }
+  }
+};
+
+function loadConfig() {
+  try {
+    const saved = localStorage.getItem('photobadge_config');
+    if (saved) { CFG = JSON.parse(saved); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function saveConfig() {
+  const name = document.getElementById('setupSchoolName').value.trim();
+  if (!name) { alert('Veuillez entrer le nom de l\'établissement.'); return; }
+
+  CFG.schoolName = name;
+  CFG.city       = document.getElementById('setupCity').value.trim();
+  CFG.year       = document.getElementById('setupYear').value.trim() || new Date().getFullYear() + '–' + (new Date().getFullYear()+1);
+  CFG.color1     = document.getElementById('setupColor').value;
+  CFG.color2     = document.getElementById('setupColor2').value;
+  CFG.clientId   = document.getElementById('setupClientId').value.trim();
+  CFG.folderId   = document.getElementById('setupFolderId').value.trim();
+  // Les styles et classes sont déjà dans CFG, pas besoin de les relire
+
+  // Logo
+  if (logoTabMode === 'url') {
+    CFG.logoUrl     = document.getElementById('setupLogoUrl').value.trim();
+    CFG.logoDataUrl = '';
+  } else {
+    CFG.logoDataUrl = setupLogoData || '';
+    CFG.logoUrl     = '';
+  }
+
+  localStorage.setItem('photobadge_config', JSON.stringify(CFG));
+  initApp();
+}
+
+function openSettings() {
+  document.getElementById('setupSchoolName').value = CFG.schoolName;
+  document.getElementById('setupCity').value = CFG.city;
+  document.getElementById('setupYear').value = CFG.year;
+  document.getElementById('setupColor').value = CFG.color1;
+  document.getElementById('setupColor2').value = CFG.color2;
+  document.getElementById('setupClientId').value = CFG.clientId;
+  document.getElementById('setupFolderId').value = CFG.folderId;
+  if (CFG.logoUrl) document.getElementById('setupLogoUrl').value = CFG.logoUrl;
+  // Restaurer les boutons de style
+  if (!CFG.styles) CFG.styles = { schoolName:{bold:false,italic:false,underline:false,font:'Arial'}, city:{bold:false,italic:false,underline:false,font:'Arial'}, year:{bold:false,italic:false,underline:false,font:'Arial'} };
+  initStyleButtons();
+  // Construire la config des classes
+  buildClassesConfig();
+  // Auto-ouvrir la section Drive si déjà configurée
+  if (CFG.clientId || CFG.folderId) {
+    document.getElementById('driveFields').style.display = 'block';
+    document.getElementById('driveArrow').style.transform = 'rotate(180deg)';
+    document.getElementById('driveToggle').style.background = 'rgba(26,74,138,0.1)';
+  }
+  document.getElementById('setupScreen').style.display = 'block';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════
+// SETUP SCREEN LOGIC
+// ══════════════════════════════════════════════════
+let logoTabMode = 'url';
+let setupLogoData = '';
+
+// ── Gestion des styles de police ──────────────────
+function getStyles() {
+  if (!CFG.styles) CFG.styles = {
+    schoolName: {bold:false,italic:false,underline:false,font:'Arial'},
+    city:       {bold:false,italic:false,underline:false,font:'Arial'},
+    year:       {bold:false,italic:false,underline:false,font:'Arial'}
+  };
+  return CFG.styles;
+}
+
+function toggleStyle(field, style) {
+  const s = getStyles();
+  if (!s[field]) s[field] = {bold:false,italic:false,underline:false,font:'Arial'};
+  s[field][style] = !s[field][style];
+  const btn = document.getElementById('btn-'+field+'-'+style);
+  if (btn) btn.classList.toggle('active', s[field][style]);
+  updateStylePreview(field);
+}
+
+function setFont(field, font) {
+  const s = getStyles();
+  if (!s[field]) s[field] = {bold:false,italic:false,underline:false,font:'Arial'};
+  s[field].font = font;
+  updateStylePreview(field);
+}
+
+function updateStylePreview(field) {
+  const ids = {schoolName:'setupSchoolName', city:'setupCity', year:'setupYear'};
+  const labels = {schoolName:"Nom de l'établissement", city:'Ville · Pays', year:'Année scolaire'};
+  const input   = document.getElementById(ids[field]);
+  const preview = document.getElementById('preview-'+field);
+  if (!preview) return;
+  const s = getStyles()[field] || {};
+  preview.style.fontFamily     = (s.font || 'Arial') + ',sans-serif';
+  preview.style.fontWeight     = s.bold      ? 'bold'      : 'normal';
+  preview.style.fontStyle      = s.italic    ? 'italic'    : 'normal';
+  preview.style.textDecoration = s.underline ? 'underline' : 'none';
+  preview.style.color          = 'rgba(10,10,10,0.75)';
+  preview.textContent          = (input && input.value) || labels[field];
+}
+
+function initStyleButtons() {
+  const s = getStyles();
+  ['schoolName','city','year'].forEach(field => {
+    const fs = s[field] || {};
+    ['bold','italic','underline'].forEach(st => {
+      const btn = document.getElementById('btn-'+field+'-'+st);
+      if (btn) btn.classList.toggle('active', !!fs[st]);
+    });
+    const sel = document.getElementById('font-'+field);
+    if (sel && fs.font) sel.value = fs.font;
+    updateStylePreview(field);
+  });
+}
+
+// ── Logo tab switch ────────────────────────────────
+function switchLogoTab(mode) {
+  logoTabMode = mode;
+  document.getElementById('tabUrl').classList.toggle('active', mode==='url');
+  document.getElementById('tabUpload').classList.toggle('active', mode==='upload');
+  document.getElementById('logoUrlPanel').style.display = mode==='url' ? 'block' : 'none';
+  document.getElementById('logoUploadPanel').style.display = mode==='upload' ? 'block' : 'none';
+}
+
+// ── Configuration des classes ─────────────────────
+const NIVEAUX = ['6ème','5ème','4ème','3ème','2nde','1ère','Terminale'];
+const ALPHA   = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+// Préfixe court pour le badge (ex: "Terminale" → "Tale")
+function niveauPrefix(niveau) {
+  const map = {'6ème':'6è','5ème':'5è','4ème':'4è','3ème':'3è','2nde':'2nde','1ère':'1è','Terminale':'Tale'};
+  return map[niveau] || niveau;
+}
+
+// Générer les noms de classes pour un niveau
+function genClasses(niveau, type, count) {
+  const prefix = niveauPrefix(niveau);
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    result.push(prefix + (type === 'alpha' ? ALPHA[i] : (i+1)));
+  }
+  return result;
+}
+
+// Aperçu texte
+function classePreview(niveau, type, count) {
+  const classes = genClasses(niveau, type, Math.min(count, 3));
+  const suffix  = count > 3 ? '...' : '';
+  return classes.join(', ') + suffix;
+}
+
+// Construire le HTML de config des classes
+function buildClassesConfig() {
+  if (!CFG.classes) CFG.classes = {};
+  const container = document.getElementById('classesConfig');
+  if (!container) return;
+  container.innerHTML = '';
+  NIVEAUX.forEach(niveau => {
+    const cfg = CFG.classes[niveau] || { active:false, type:'alpha', count:3 };
+    const row = document.createElement('div');
+    row.className = 'classe-row' + (cfg.active ? '' : ' disabled');
+    row.id = 'row-' + niveau;
+    row.innerHTML = `
+      <input type="checkbox" id="chk-${niveau}" ${cfg.active?'checked':''} onchange="toggleNiveau('${niveau}',this.checked)">
+      <span class="niveau-label">${niveau}</span>
+      <select id="type-${niveau}" onchange="updateNiveau('${niveau}')">
+        <option value="alpha" ${cfg.type==='alpha'?'selected':''}>Alphabétique (A,B,C...)</option>
+        <option value="num"   ${cfg.type==='num'  ?'selected':''}>Numérique (1,2,3...)</option>
+      </select>
+      <input type="number" id="count-${niveau}" value="${cfg.count}" min="1" max="12" onchange="updateNiveau('${niveau}')">
+      <span class="classe-preview" id="preview-classe-${niveau}">${classePreview(niveau, cfg.type, cfg.count)}</span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function toggleNiveau(niveau, active) {
+  if (!CFG.classes[niveau]) CFG.classes[niveau] = {active:false,type:'alpha',count:3};
+  CFG.classes[niveau].active = active;
+  const row = document.getElementById('row-' + niveau);
+  if (row) row.classList.toggle('disabled', !active);
+}
+
+function updateNiveau(niveau) {
+  const type  = document.getElementById('type-' + niveau)?.value || 'alpha';
+  const count = parseInt(document.getElementById('count-' + niveau)?.value) || 3;
+  if (!CFG.classes[niveau]) CFG.classes[niveau] = {active:true,type:'alpha',count:3};
+  CFG.classes[niveau].type  = type;
+  CFG.classes[niveau].count = Math.min(Math.max(count, 1), 12);
+  const preview = document.getElementById('preview-classe-' + niveau);
+  if (preview) preview.textContent = classePreview(niveau, type, count);
+}
+
+// Construire le select de classes dans l'app principale
+function buildClasseSelect() {
+  const select = document.getElementById('classeSelect');
+  if (!select) return;
+  select.innerHTML = '<option value="">— Choisir la classe —</option>';
+  if (!CFG.classes) return;
+  NIVEAUX.forEach(niveau => {
+    const cfg = CFG.classes[niveau];
+    if (!cfg || !cfg.active) return;
+    const classes = genClasses(niveau, cfg.type, cfg.count);
+    const group = document.createElement('optgroup');
+    group.label = niveau;
+    classes.forEach(cl => {
+      const opt = document.createElement('option');
+      opt.value = cl;
+      opt.textContent = cl;
+      group.appendChild(opt);
+    });
+    select.appendChild(group);
+  });
+}
+
+// ── Toggle section Drive ──────────────────────────
+function toggleDriveFields() {
+  const fields = document.getElementById('driveFields');
+  const arrow  = document.getElementById('driveArrow');
+  const toggle = document.getElementById('driveToggle');
+  const open   = fields.style.display === 'none';
+  fields.style.display = open ? 'block' : 'none';
+  arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+  toggle.style.background = open ? 'rgba(26,74,138,0.1)' : 'rgba(26,74,138,0.06)';
+}
+
+// ── Ouvrir l'aide depuis l'écran de config ────────
+function openSetupHelp() {
+  // Montrer temporairement l'app pour accéder au helpOverlay
+  const helpOverlay = document.getElementById('helpOverlay');
+  if (helpOverlay) {
+    helpOverlay.classList.add('open');
+  }
+}
+
+document.getElementById('setupLogoUrl').addEventListener('input', function() {
+  const prev = document.getElementById('setupLogoPreview');
+  if (this.value) { prev.src = this.value; prev.style.display = 'block'; }
+  else prev.style.display = 'none';
+});
+
+document.getElementById('logoFileInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    setupLogoData = e.target.result;
+    const prev = document.getElementById('setupLogoPreview');
+    prev.src = setupLogoData;
+    prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+// ══════════════════════════════════════════════════
+// INIT APP
+// ══════════════════════════════════════════════════
+let logoImg = null;
+let accessToken = null;
+let tokenClient = null;
+
+function initApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+
+  // Appliquer les couleurs
+  document.documentElement.style.setProperty('--school-color', CFG.color1);
+  document.documentElement.style.setProperty('--red', CFG.color2);
+
+  // Header sub (ville · année) avec styles
+  const headerSub = document.getElementById('headerSub');
+  if (headerSub) {
+    const sCity = CFG.styles?.city || {};
+    const sYear = CFG.styles?.year || {};
+    const sName = CFG.styles?.schoolName || {};
+    const nameEl = `<span style="font-weight:${sName.bold?'bold':'normal'};font-style:${sName.italic?'italic':'normal'};text-decoration:${sName.underline?'underline':'none'}">${CFG.schoolName}</span>`;
+    const cityEl = `<span style="font-weight:${sCity.bold?'bold':'normal'};font-style:${sCity.italic?'italic':'normal'};text-decoration:${sCity.underline?'underline':'none'}">${CFG.city}</span>`;
+    const yearEl = `<span style="font-weight:${sYear.bold?'bold':'normal'};font-style:${sYear.italic?'italic':'normal'};text-decoration:${sYear.underline?'underline':'none'}">${CFG.year}</span>`;
+    const parts = [CFG.schoolName?nameEl:'', CFG.city?cityEl:'', CFG.year?yearEl:''].filter(Boolean);
+    headerSub.innerHTML = parts.join('  ·  ');
+  }
+
+  // Logo header
+  const hLogo = document.getElementById('headerLogo');
+  const logoSrc = CFG.logoDataUrl || CFG.logoUrl;
+  if (logoSrc) { hLogo.src = logoSrc; hLogo.style.display = 'block'; }
+  else hLogo.style.display = 'none';
+
+  // Drive info
+  if (CFG.clientId) {
+    document.getElementById('authStrip').style.display = 'flex';
+    document.getElementById('driveInfoText').textContent = CFG.folderId ? 'dossier configuré' : 'racine Drive';
+    initOAuth();
+  } else {
+    document.getElementById('authStrip').style.display = 'none';
+    document.getElementById('btnUpload').style.display = 'none';
+    document.getElementById('driveInfoText').textContent = 'non configuré';
+  }
+
+  // Charger le logo pour les badges
+  logoImg = null;
+  if (logoSrc) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { logoImg = img; drawBadgePreview(); };
+    img.onerror = () => { logoImg = null; };
+    img.src = logoSrc;
+  }
+
+  drawBadge(badgeCanvas, null, '', '', '', null);
+  // Construire le select de classes dynamiquement
+  buildClasseSelect();
+}
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let stream            = null;
+let capturedBlob      = null;
+let currentFacingMode = 'user';
+let uploadMode        = false;
+let badgeList         = [];
+
+// ══════════════════════════════════════════════════
+// ELEMENTS
+// ══════════════════════════════════════════════════
+const videoEl         = document.getElementById('videoEl');
+const canvasEl        = document.getElementById('canvasEl');
+const cameraFrame     = document.getElementById('cameraFrame');
+const camPlaceholder  = document.getElementById('camPlaceholder');
+const flashOverlay    = document.getElementById('flashOverlay');
+const btnCapture      = document.getElementById('btnCapture');
+const btnSwitchCam    = document.getElementById('btnSwitchCam');
+const btnMode         = document.getElementById('btnMode');
+const uploadZone      = document.getElementById('uploadZone');
+const fileInput       = document.getElementById('fileInput');
+const uploadedPreview = document.getElementById('uploadedPreview');
+const badgeCanvas     = document.getElementById('badgeCanvas');
+const classeSelect    = document.getElementById('classeSelect');
+const lastNameInput   = document.getElementById('lastNameInput');
+const firstNameInput  = document.getElementById('firstNameInput');
+const fnPreview       = document.getElementById('fnPreview');
+const authDot         = document.getElementById('authDot');
+const authLabel       = document.getElementById('authLabel');
+const btnAuth         = document.getElementById('btnAuth');
+const btnUpload       = document.getElementById('btnUpload');
+const btnBadge        = document.getElementById('btnBadge');
+const statusMsg       = document.getElementById('statusMsg');
+const badgeSection    = document.getElementById('badgeSection');
+const badgeGrid       = document.getElementById('badgeGrid');
+const badgeCount      = document.getElementById('badgeCount');
+const btnPreviewPDF   = document.getElementById('btnPreviewPDF');
+const btnPDF          = document.getElementById('btnPDF');
+const btnClear        = document.getElementById('btnClear');
+const historyStrip    = document.getElementById('historyStrip');
+const historyList     = document.getElementById('historyList');
+
+// ══════════════════════════════════════════════════
+// TIMESTAMP FILENAME
+// ══════════════════════════════════════════════════
+function getTimestampFilename(ext) {
+  const now = new Date();
+  const dd  = String(now.getDate()).padStart(2,'0');
+  const mm  = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy= now.getFullYear();
+  const hh  = String(now.getHours()).padStart(2,'0');
+  const min = String(now.getMinutes()).padStart(2,'0');
+  const ss  = String(now.getSeconds()).padStart(2,'0');
+  return `${dd}-${mm}-${yyyy}-${hh}-${min}-${ss}s.${ext}`;
+}
+
+// ══════════════════════════════════════════════════
+// SAUVEGARDE LOCALE AVEC CHOIX DU DOSSIER
+// ══════════════════════════════════════════════════
+async function saveLocalFile(blob, filename) {
+  // Tentative File System Access API (Chrome/Edge)
+  if (window.showSaveFilePicker) {
+    try {
+      const ext = filename.split('.').pop().toLowerCase();
+      const mimeTypes = { jpg: 'image/jpeg', jpeg: 'image/jpeg', pdf: 'application/pdf' };
+      const fileTypes = {
+        jpg:  [{ description: 'Image JPEG', accept: { 'image/jpeg': ['.jpg'] } }],
+        jpeg: [{ description: 'Image JPEG', accept: { 'image/jpeg': ['.jpg'] } }],
+        pdf:  [{ description: 'Document PDF', accept: { 'application/pdf': ['.pdf'] } }]
+      };
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: fileTypes[ext] || [{ description: 'Fichier', accept: { '*/*': [] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return; // succès
+    } catch(e) {
+      if (e.name === 'AbortError') return; // utilisateur a annulé
+      // Fallback si erreur
+    }
+  }
+  // Fallback classique (Firefox, Safari, mobile)
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ══════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════
+async function startCamera(facingMode) {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width:{ideal:1280}, height:{ideal:960} }, audio:false
+    });
+    videoEl.srcObject = stream;
+    currentFacingMode = facingMode;
+    camPlaceholder.style.display = 'none';
+    videoEl.style.display = 'block';
+    btnSwitchCam.style.display = 'flex';
+    btnCapture.disabled = false;
+    videoEl.style.transform = facingMode==='user' ? 'scaleX(-1)' : 'scaleX(1)';
+  } catch(err) { showStatus('error', 'Caméra inaccessible : ' + err.message); }
+}
+
+cameraFrame.addEventListener('click', (e) => {
+  if (e.target===btnSwitchCam || btnSwitchCam.contains(e.target)) return;
+  if (!stream && !uploadMode) startCamera(currentFacingMode);
+});
+btnSwitchCam.addEventListener('click', (e) => {
+  e.stopPropagation();
+  startCamera(currentFacingMode==='user' ? 'environment' : 'user');
+});
+
+btnCapture.addEventListener('click', () => {
+  if (!stream) return;
+  canvasEl.width  = videoEl.videoWidth  || 640;
+  canvasEl.height = videoEl.videoHeight || 480;
+  const ctx = canvasEl.getContext('2d');
+  if (currentFacingMode==='user') { ctx.translate(canvasEl.width,0); ctx.scale(-1,1); }
+  ctx.drawImage(videoEl, 0, 0);
+  ctx.setTransform(1,0,0,1,0,0);
+  flashOverlay.classList.add('active');
+  setTimeout(() => flashOverlay.classList.remove('active'), 150);
+  canvasEl.toBlob(blob => {
+    capturedBlob = blob;
+    updateButtons();
+    drawBadgePreview();
+    // Sauvegarde locale automatique de la photo
+    saveLocalFile(blob, getTimestampFilename('jpg'));
+    showStatus('success', '✓ Photo capturée et sauvegardée localement.');
+  }, 'image/jpeg', 0.93);
+});
+
+// ══════════════════════════════════════════════════
+// MODE UPLOAD
+// ══════════════════════════════════════════════════
+btnMode.addEventListener('click', () => {
+  uploadMode = !uploadMode;
+  if (uploadMode) {
+    if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    cameraFrame.style.display = 'none';
+    btnCapture.style.display = 'none';
+    uploadZone.style.display = 'block';
+    btnMode.textContent = '📷';
+    btnMode.title = 'Utiliser la caméra';
+  } else {
+    cameraFrame.style.display = 'block';
+    btnCapture.style.display = 'block';
+    uploadZone.style.display = 'none';
+    uploadedPreview.style.display = 'none';
+    btnMode.textContent = '📁';
+    btnMode.title = 'Importer une image';
+  }
+});
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.style.background='rgba(26,74,138,0.1)'; });
+uploadZone.addEventListener('dragleave', () => { uploadZone.style.background='rgba(26,74,138,0.04)'; });
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault(); uploadZone.style.background='rgba(26,74,138,0.04)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleUploadedFile(file);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleUploadedFile(fileInput.files[0]); });
+
+function handleUploadedFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    uploadedPreview.src = e.target.result;
+    uploadedPreview.style.display = 'block';
+    document.getElementById('uploadZoneInner').style.display = 'none';
+    const img = new Image();
+    img.onload = () => {
+      const maxW=1280, maxH=960;
+      let w=img.width, h=img.height;
+      if (w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+      if (h>maxH){ w=Math.round(w*maxH/h); h=maxH; }
+      canvasEl.width=w; canvasEl.height=h;
+      canvasEl.getContext('2d').drawImage(img,0,0,w,h);
+      canvasEl.toBlob(blob => {
+        capturedBlob = blob;
+        updateButtons();
+        drawBadgePreview();
+        showStatus('success', '✓ Image importée — remplissez les informations.');
+      }, 'image/jpeg', 0.93);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════════
+// BADGE DRAWING
+// ══════════════════════════════════════════════════
+function drawBadge(targetCanvas, photoBlob, lastName, firstName, classe, onDone) {
+  const W=640, H=400;
+  targetCanvas.width=W; targetCanvas.height=H;
+  const ctx = targetCanvas.getContext('2d');
+  const c1 = CFG.color1 || '#1a4a8a';
+  const c2 = CFG.color2 || '#c0392b';
+
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=c1; ctx.fillRect(0,0,W,72);
+  ctx.fillStyle=c2; ctx.fillRect(0,H-56,W,56);
+
+  // Fonction pour construire la font string avec styles
+  const makeFont = (size, field) => {
+    const s = CFG.styles?.[field] || {};
+    const weight = s.bold   ? 'bold'   : 'normal';
+    const style  = s.italic ? 'italic' : 'normal';
+    const font   = s.font   || 'Arial';
+    return `${style} ${weight} ${size}px ${font},sans-serif`;
+  };
+  const drawText = (ctx, text, x, y, field) => {
+    const s = CFG.styles?.[field] || {};
+    ctx.fillText(text, x, y);
+    if (s.underline) {
+      const w = ctx.measureText(text).width;
+      const align = ctx.textAlign;
+      let lx = x;
+      if (align === 'center') lx = x - w/2;
+      else if (align === 'right') lx = x - w;
+      ctx.save();
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(lx, y+3); ctx.lineTo(lx+w, y+3); ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  // ── Logo dans la bande bleue haut gauche ──
+  // Dessiné immédiatement (avant render) car la bande bleue est déjà tracée
+  const drawTopLogo = () => {
+    if (!logoImg) return;
+    try {
+      const maxLW = 80, maxLH = 52; // max dans la bande de 72px de haut
+      let lw = logoImg.naturalWidth || 80, lh = logoImg.naturalHeight || 52;
+      const r = Math.min(maxLW/lw, maxLH/lh);
+      lw = Math.round(lw*r); lh = Math.round(lh*r);
+      const lx = 10;
+      const ly = Math.round((72 - lh) / 2); // centré verticalement dans la bande
+      // Fond blanc semi-transparent derrière le logo
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(lx-3, ly-3, lw+6, lh+6);
+      ctx.drawImage(logoImg, lx, ly, lw, lh);
+    } catch(e){}
+  };
+  drawTopLogo();
+
+  // Texte haut — décalé à droite si logo présent
+  const textOffsetX = logoImg ? 95 : 0;
+  const textCenterX = Math.round((W + textOffsetX) / 2);
+  ctx.fillStyle='#ffffff'; ctx.textAlign='center';
+  ctx.font = makeFont(20, 'schoolName');
+  drawText(ctx, CFG.schoolName || 'Établissement', textCenterX, 28, 'schoolName');
+  // Ville et année sur une seule ligne centrée
+  const subParts = [CFG.city, CFG.year].filter(Boolean);
+  const subText = subParts.join('  ·  ');
+  ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.font = makeFont(14, 'city');
+  ctx.textAlign = 'center';
+  ctx.fillText(subText, textCenterX, 52);
+
+  const render = () => {
+    const ix=250, iy=88;
+    ctx.fillStyle=c1; ctx.font='bold 62px Arial,sans-serif'; ctx.textAlign='left';
+    ctx.fillText(classe||'—', ix, iy+58);
+    ctx.strokeStyle=c2; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(ix,iy+70); ctx.lineTo(W-18,iy+70); ctx.stroke();
+    ctx.fillStyle='#0a0a0a'; ctx.font='bold 28px Arial,sans-serif';
+    ctx.fillText((lastName||'').toUpperCase(), ix, iy+108);
+    ctx.font='22px Arial,sans-serif'; ctx.fillStyle='#333';
+    ctx.fillText(firstName||'', ix, iy+140);
+    ctx.font = makeFont(14, 'year'); ctx.fillStyle='#888';
+    drawText(ctx, 'Année scolaire '+(CFG.year||''), ix, iy+178, 'year');
+    ctx.fillStyle='#ffffff'; ctx.font='bold 15px Arial,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('CARTE ÉLÈVE  —  NE PAS PLIER', W/2, H-18);
+
+    if (logoImg) {
+      try {
+        const maxW=234, maxH=78;
+        let lw=logoImg.naturalWidth||160, lh=logoImg.naturalHeight||56;
+        // Respecter le ratio original, sans dépasser les max
+        const r=Math.min(maxW/lw, maxH/lh);
+        lw=Math.round(lw*r); lh=Math.round(lh*r);
+        const lx=W-lw-14, ly=H-56-lh-10;
+        ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fillRect(lx-5,ly-4,lw+10,lh+8);
+        ctx.drawImage(logoImg, lx, ly, lw, lh);
+      } catch(e){}
+    } else if (CFG.schoolName) {
+      ctx.fillStyle=c1; ctx.font='bold 11px Arial,sans-serif'; ctx.textAlign='right';
+      ctx.fillText(CFG.schoolName, W-14, H-56-16);
+    }
+
+    if (onDone) onDone(targetCanvas.toDataURL('image/jpeg',0.95));
+  };
+
+  if (photoBlob) {
+    const url=URL.createObjectURL(photoBlob);
+    const img=new Image();
+    img.onload=()=>{
+      ctx.strokeStyle=c1; ctx.lineWidth=3; ctx.strokeRect(18,86,214,224);
+      const aspect=img.width/img.height, ta=214/224;
+      let sx=0,sy=0,sw=img.width,sh=img.height;
+      if(aspect>ta){sw=img.height*ta;sx=(img.width-sw)/2;}
+      else{sh=img.width/ta;sy=(img.height-sh)/2;}
+      ctx.drawImage(img,sx,sy,sw,sh,20,88,210,220);
+      URL.revokeObjectURL(url); render();
+    };
+    img.onerror=()=>{
+      ctx.fillStyle='#e8e8e8'; ctx.fillRect(20,88,210,220);
+      ctx.fillStyle='#aaa'; ctx.font='16px Arial'; ctx.textAlign='center';
+      ctx.fillText('Photo',125,205); render();
+    };
+    img.src=url;
+  } else {
+    ctx.fillStyle='#eaeaea'; ctx.fillRect(20,88,210,220);
+    ctx.fillStyle='#bbb'; ctx.font='15px Arial'; ctx.textAlign='center';
+    ctx.fillText('Aperçu photo',125,205); render();
+  }
+}
+
+function drawBadgePreview() {
+  drawBadge(badgeCanvas, capturedBlob, lastNameInput.value.trim(), firstNameInput.value.trim(), classeSelect.value, null);
+}
+
+[classeSelect,lastNameInput,firstNameInput].forEach(el=>{
+  el.addEventListener('input',  ()=>{ drawBadgePreview(); updateFnPreview(); updateButtons(); });
+  el.addEventListener('change', ()=>{ drawBadgePreview(); updateFnPreview(); updateButtons(); });
+});
+
+function updateFnPreview() {
+  const parts=[classeSelect.value,lastNameInput.value.trim(),firstNameInput.value.trim()].filter(Boolean);
+  fnPreview.textContent = parts.length ? 'Fichier Drive : '+parts.join('_')+'.jpg' : 'Fichier Drive : classe_nom_prenom.jpg';
+}
+
+function updateButtons() {
+  const hasInfo  = firstNameInput.value.trim() && lastNameInput.value.trim() && classeSelect.value;
+  const hasPhoto = !!capturedBlob;
+  btnUpload.disabled = !(hasPhoto && hasInfo && accessToken && CFG.clientId);
+  btnBadge.disabled  = !(hasPhoto && hasInfo);
+}
+
+// ══════════════════════════════════════════════════
+// GOOGLE AUTH
+// ══════════════════════════════════════════════════
+function initOAuth() {
+  if (!CFG.clientId) return;
+  function tryInit() {
+    if (window.google?.accounts?.oauth2) {
+      try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CFG.clientId,
+          scope: 'https://www.googleapis.com/auth/drive.file',
+          callback: onTokenReceived,
+          error_callback: (err) => showStatus('error','Erreur Google : '+(err.type||''))
+        });
+        btnAuth.disabled = false;
+      } catch(e){ setTimeout(tryInit,500); }
+    } else { setTimeout(tryInit,300); }
+  }
+  setTimeout(tryInit, 100);
+}
+
+btnAuth.addEventListener('click', () => {
+  if (!tokenClient) { showStatus('error','⚠ Google non prêt, patientez.'); return; }
+  hideStatus();
+  tokenClient.requestAccessToken({ prompt:'select_account' });
+});
+
+function onTokenReceived(resp) {
+  if (resp.error) { authDot.className='dot error'; authLabel.textContent='Erreur connexion'; return; }
+  accessToken = resp.access_token;
+  authDot.className = 'dot connected';
+  authLabel.textContent = '✓ Connecté à Google Drive';
+  btnAuth.classList.add('hidden');
+  updateButtons();
+}
+
+// ══════════════════════════════════════════════════
+// UPLOAD DRIVE
+// ══════════════════════════════════════════════════
+btnUpload.addEventListener('click', async () => {
+  const fn=firstNameInput.value.trim(), ln=lastNameInput.value.trim(), cl=classeSelect.value;
+  if (!fn||!ln||!cl||!capturedBlob||!accessToken) return;
+
+  const filename = cl+'_'+ln+'_'+fn+'.jpg';
+  btnUpload.disabled=true;
+  btnUpload.innerHTML=`<span class="ld">Envoi Drive<span>.</span><span>.</span><span>.</span></span><div class="progress-bar" id="progressBar"></div>`;
+  hideStatus();
+
+  try {
+    let prog=0;
+    const pi=setInterval(()=>{ prog=Math.min(prog+8,85); const pb=document.getElementById('progressBar'); if(pb) pb.style.width=prog+'%'; },120);
+    const meta=JSON.stringify({name:filename,mimeType:'image/jpeg',parents:CFG.folderId?[CFG.folderId]:undefined});
+    const b64=(await blobToBase64(capturedBlob)).split(',')[1];
+    const bnd='---pb_bnd';
+    const body=`\r\n--${bnd}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${bnd}\r\nContent-Type: image/jpeg\r\nContent-Transfer-Encoding: base64\r\n\r\n${b64}\r\n--${bnd}--`;
+    const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
+      {method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'multipart/related; boundary='+bnd},body});
+    clearInterval(pi);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const file=await res.json();
+    document.getElementById('progressBar')&&(document.getElementById('progressBar').style.width='100%');
+    showStatus('success','✓ Photo envoyée sur Drive : "'+file.name+'"');
+    addToHistory(file.name, file.webViewLink);
+  } catch(err){ showStatus('error','Erreur Drive : '+err.message); }
+
+  btnUpload.innerHTML='☁ &nbsp; Envoyer la photo sur Drive<div class="progress-bar" id="progressBar"></div>';
+  updateButtons();
+});
+
+// ══════════════════════════════════════════════════
+// GÉNÉRER BADGE
+// ══════════════════════════════════════════════════
+btnBadge.addEventListener('click', () => {
+  const fn=firstNameInput.value.trim(), ln=lastNameInput.value.trim(), cl=classeSelect.value;
+  if (!fn||!ln||!cl||!capturedBlob) return;
+
+  const filename=cl+'_'+ln+'_'+fn+'.jpg';
+  const blobCopy=capturedBlob;
+  btnBadge.disabled=true; btnBadge.textContent='Génération...';
+
+  drawBadge(document.createElement('canvas'), blobCopy, ln, fn, cl, (dataUrl) => {
+    badgeList.push({dataUrl,filename,classe:cl,firstName:fn,lastName:ln,blob:blobCopy});
+    const idx=badgeList.length-1;
+    const div=document.createElement('div');
+    div.className='badge-thumb'; div.dataset.index=idx;
+    div.innerHTML=`<img src="${dataUrl}"><div class="badge-lbl">${cl} — ${ln} ${fn}</div><button class="btn-rm" title="Supprimer">×</button>`;
+    div.querySelector('.btn-rm').addEventListener('click',()=>{ badgeList[idx]=null; div.remove(); refreshBadgeCount(); });
+    badgeGrid.appendChild(div);
+    badgeSection.style.display='block';
+    refreshBadgeCount();
+    showStatus('success','✓ Badge généré : '+fn+' '+ln+' ('+cl+')');
+    resetForm();
+    btnBadge.innerHTML='🪪 &nbsp; Générer le badge';
+    updateButtons();
+  });
+});
+
+function refreshBadgeCount() {
+  const n=badgeList.filter(Boolean).length;
+  badgeCount.textContent=n+' badge(s)';
+  btnPDF.disabled=btnPreviewPDF.disabled=n===0;
+  if(n===0) badgeSection.style.display='none';
+}
+
+btnClear.addEventListener('click',()=>{ badgeList=[]; badgeGrid.innerHTML=''; refreshBadgeCount(); });
+
+// ══════════════════════════════════════════════════
+// PDF
+// ══════════════════════════════════════════════════
+async function buildPDF(valid) {
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const cols=2,rows=4,mX=12,mY=12,gX=8,gY=6;
+  const bW=(210-mX*2-gX*(cols-1))/cols;
+  const bH=(297-mY*2-gY*(rows-1))/rows;
+  let col=0,row=0;
+  for(let i=0;i<valid.length;i++){
+    if(i>0&&i%(cols*rows)===0){doc.addPage();col=0;row=0;}
+    const x=mX+col*(bW+gX), y=mY+row*(bH+gY);
+    await new Promise(res=>{
+      const hq=document.createElement('canvas');
+      drawBadge(hq,valid[i].blob,valid[i].lastName,valid[i].firstName,valid[i].classe,(dataUrl)=>{
+        doc.addImage(dataUrl,'JPEG',x,y,bW,bH); res();
+      });
+    });
+    col++; if(col>=cols){col=0;row++;}
+  }
+  const total=Math.ceil(valid.length/(cols*rows));
+  for(let p=1;p<=total;p++){
+    doc.setPage(p); doc.setFontSize(7); doc.setTextColor(150);
+    doc.text('Page '+p+'/'+total+' — '+(CFG.schoolName||'PhotoBadge')+' — '+(CFG.year||''), 105, 293, {align:'center'});
+  }
+  return {doc, total};
+}
+
+btnPreviewPDF.addEventListener('click', async()=>{
+  const valid=badgeList.filter(Boolean); if(!valid.length) return;
+  btnPreviewPDF.disabled=true;
+  btnPreviewPDF.innerHTML=`<span class="ld">Préparation<span>.</span><span>.</span><span>.</span></span>`;
+  try {
+    const {doc,total}=await buildPDF(valid);
+    const url=URL.createObjectURL(doc.output('blob'));
+    window.open(url,'_blank');
+    showStatus('success','✓ PDF ouvert — Ctrl+P pour imprimer ('+valid.length+' badges, '+total+' page(s))');
+  } catch(err){ showStatus('error','Erreur PDF : '+err.message); }
+  btnPreviewPDF.disabled=false;
+  btnPreviewPDF.innerHTML='👁 &nbsp; Visualiser PDF';
+});
+
+btnPDF.addEventListener('click', async()=>{
+  const valid=badgeList.filter(Boolean); if(!valid.length) return;
+  btnPDF.disabled=true;
+  btnPDF.innerHTML=`<span class="ld">Génération PDF<span>.</span><span>.</span><span>.</span></span>`;
+  try {
+    const {doc,total}=await buildPDF(valid);
+    // Sauvegarder avec timestamp
+    const tsFilename='badges_'+getTimestampFilename('pdf');
+    const pdfBlob = doc.output('blob');
+    await saveLocalFile(pdfBlob, tsFilename);
+    showStatus('success','✓ PDF téléchargé : '+valid.length+' badge(s) sur '+total+' page(s) A4');
+  } catch(err){ showStatus('error','Erreur PDF : '+err.message); }
+  btnPDF.disabled=false;
+  btnPDF.innerHTML='🖨 &nbsp; Télécharger PDF A4';
+});
+
+// ══════════════════════════════════════════════════
+// UTILITAIRES
+// ══════════════════════════════════════════════════
+function blobToBase64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(blob); }); }
+
+function resetForm() {
+  capturedBlob=null;
+  firstNameInput.value=''; lastNameInput.value=''; classeSelect.value='';
+  fnPreview.textContent='Fichier Drive : classe_nom_prenom.jpg';
+  if(uploadMode){
+    uploadedPreview.style.display='none'; uploadedPreview.src='';
+    document.getElementById('uploadZoneInner').style.display='block';
+    fileInput.value='';
+  }
+  drawBadge(badgeCanvas,null,'','','',null);
+  updateButtons();
+}
+
+function addToHistory(name,link){
+  historyStrip.style.display='block';
+  const d=document.createElement('div'); d.className='history-item';
+  d.innerHTML='✓ <a href="'+link+'" target="_blank">'+name+'</a>';
+  historyList.prepend(d);
+}
+
+function showStatus(type,msg){ statusMsg.className='status '+type; statusMsg.textContent=msg; statusMsg.style.display='block'; }
+function hideStatus(){ statusMsg.style.display='none'; }
+
+// ══════════════════════════════════════════════════
+// POPUP AIDE
+// ══════════════════════════════════════════════════
+function openHelp() {
+  document.getElementById('helpOverlay').classList.add('open');
+  
+}
+function closeHelp() {
+  document.getElementById('helpOverlay').classList.remove('open');
+  
+}
+function closeHelpOutside(e) {
+  if (e.target === document.getElementById('helpOverlay')) closeHelp();
+}
+// Fermer avec Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeHelp();
+});
+
+// ══════════════════════════════════════════════════
+// DÉMARRAGE
+// ══════════════════════════════════════════════════
+if (loadConfig() && CFG.schoolName) {
+  buildClassesConfig();
+  initApp();
+} else {
+  // Pré-remplir avec les valeurs Pierre Loti si c'est la première fois
+  document.getElementById('setupSchoolName').value = 'Lycée Français Pierre Loti';
+  document.getElementById('setupCity').value = 'Istanbul · Turquie';
+  document.getElementById('setupYear').value = '2025–2026';
+  document.getElementById('setupLogoUrl').value = 'https://raw.githubusercontent.com/xseorkly/photoeleve/refs/heads/main/logo.jpeg';
+  document.getElementById('setupClientId').value = '254868852876-ge0pjg5biqdmsmn0900pddd6rks1mua7.apps.googleusercontent.com';
+  document.getElementById('setupFolderId').value = '1S9fF6pZN-dUPH5krLSiaSmzBnWku-cUZ';
+  const prev=document.getElementById('setupLogoPreview');
+  prev.src='https://raw.githubusercontent.com/xseorkly/photoeleve/refs/heads/main/logo.jpeg';
+  prev.style.display='block';
+  document.getElementById('setupScreen').style.display='block';
+  buildClassesConfig();
+}
+</script>
+</body>
+</html>
